@@ -1,9 +1,12 @@
+# -*- coding=utf-8 -*-
 from fabric.api import *
 from fabric.contrib import files
 import os
 import re
+import pdb
 env.user='root'
 env.password='yanlihua1982'
+#env.exclude_hosts=['192.168.8.90']
 env.hosts=['192.168.8.90']
 #env.roledefs={
 #	'test1':['192.168.8.90'],
@@ -12,6 +15,7 @@ env.hosts=['192.168.8.90']
 #@roles('test1')
 UP_DIR='/tmp'
 filenames=['nginx-1.10.2.tar.gz']
+pro='demo1'
 #@task(name='up')
 def upload():
 	for filename in filenames:
@@ -25,6 +29,7 @@ def tar():
 		for filename in filenames:
 			if files.exists(filename):
 				run('tar -zvxf %s' %filename)
+				run('rm -f %s' %filename)
 def before_install():
 	with settings(warn_only=True):
 		run('yum -y install gcc gcc-c++')
@@ -43,4 +48,67 @@ def install():
 				run('./configure --prefix=/usr/local/%s --with-http_ssl_module --with-pcre  --with-http_stub_status_module --with-threads' % dir_prefix)
 				run('make')
 				run('make install')
-	
+def startup():
+	with settings(warn_only=True):
+		with cd('/usr/local/nginx'):
+			result=run('test -L /bin/nginx')
+			if result.return_code==0:
+				run('rm -f /bin/nginx')
+			run('ln -s /usr/local/nginx/sbin/nginx /bin/nginx')
+			result2=run('ps -ef|grep nginx')
+			#pdb.set_trace()
+			if result2.find('master')!=-1:
+				run('nginx -s stop')
+			#	print('11111111111111')
+			#print('2222222222222222')
+			run('nginx')
+			result1=run('ps -ef |grep nginx')
+			#print result1.strip()
+			if  result1.find('master')!=-1:
+				print 'nginx start succeeded...'
+			else:
+				print 'nginx start failed ... aborting'
+				abort('you need to check nginx.conf')				
+			#print result.lower(),result.return_code,result.succeeded,result.failed
+
+def conf():
+	tmp="""
+	server {
+	    listen      80; # 监听80端口
+
+    	    root       /srv/awesome/www;
+    	    #access_log /srv/awesome/log/access_log;
+            #error_log  /srv/awesome/log/error_log;
+
+            # server_name awesome.liaoxuefeng.com; # 配置域名
+
+    	    # 处理静态文件/favicon.ico:
+    location /favicon.ico {
+        root /srv/awesome/www;
+    }
+
+    # 处理静态资源:
+    location ~ ^\/static\/.*$ {
+        root /srv/awesome/www;
+    }
+
+    # 动态请求转发到9000端口:
+    location / {
+        proxy_pass       http://127.0.0.1:9000;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+"""
+	with settings(warn_only=True):
+		with cd('/usr/local/nginx/conf/vhost'):
+			result=run('test -f %s.conf' %pro)
+			if result.return_code==0:
+				run('mv %s.conf %s.conf.bak'%(pro,pro))
+			run("echo '%s' >%s.conf" %(tmp,pro))
+		
+
+
+
+		
