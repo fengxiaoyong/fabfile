@@ -86,6 +86,9 @@ def do_files():
 			result2=run('ln -s %s %s'%(L[0],'www'))
 			if result2.failed:
 				abort('create softlink failed ...')
+			with cd('www'):
+				run('mkdir log')
+				run('chmod -R 755 log')
 
 @task(name='deploy')
 def deploy():

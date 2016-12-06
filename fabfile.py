@@ -1,13 +1,13 @@
 # -*- coding=utf-8 -*-
 from fabric.api import *
 from fabric.contrib import files
-import os
+import os,urllib2
 import re
 import pdb
 env.user='root'
 env.password='yanlihua1982'
 #env.exclude_hosts=['192.168.8.90']
-env.hosts=['192.168.8.90']
+env.hosts=['192.168.8.108','192.168.8.90']
 #env.roledefs={
 #	'test1':['192.168.8.90'],
 #	'test2':['192.168.8.108']
@@ -76,20 +76,20 @@ def conf():
 	server {
 	    listen      80; # 监听80端口
 
-    	    root       /srv/awesome/www;
-    	    #access_log /srv/awesome/log/access_log;
-            #error_log  /srv/awesome/log/error_log;
+    	    root       /home/www/www;
+    	    access_log /home/www/log/access_log;
+            error_log  /home/www/log/error_log;
 
-            # server_name awesome.liaoxuefeng.com; # 配置域名
+            server_name demo1.test.com.cn; # 配置域名
 
     	    # 处理静态文件/favicon.ico:
     location /favicon.ico {
-        root /srv/awesome/www;
+        root /home/www/www;
     }
-
+	
     # 处理静态资源:
     location ~ ^\/static\/.*$ {
-        root /srv/awesome/www;
+        root /home/www/www;
     }
 
     # 动态请求转发到9000端口:
@@ -102,13 +102,36 @@ def conf():
 }
 """
 	with settings(warn_only=True):
+		rel=run('test -d /usr/local/nginx/conf/vhost')
+		if rel.return_code==1:
+			run('mkdir /usr/local/nginx/conf/vhost')		
 		with cd('/usr/local/nginx/conf/vhost'):
 			result=run('test -f %s.conf' %pro)
 			if result.return_code==0:
 				run('mv %s.conf %s.conf.bak'%(pro,pro))
 			run("echo '%s' >%s.conf" %(tmp,pro))
-		
-
-
-
-		
+	
+def port_check():
+	with settings(warn_only=True):
+		result=run('firewall-cmd --query-port=80/tcp')	
+		if result.return_code==0:
+			print '80 port has been opened...'
+		else:
+			run('firewall-cmd --zone=public --add-port=80/tcp --permanent')
+			run('firewall-cmd --reload')
+		for host in env.hosts:
+			response=urllib2.urlopen('http://%s/favicon.ico' %host)
+			if response.code==200:
+				print'主机%s 的80 端口设置成功' %host
+			else:
+				print "主机 %s的80端口打开失败，请检查" %host
+@task(name='nginx')
+@parallel
+def deploy_nginx():
+	upload()	
+	tar()
+	before_install()
+	install()
+	conf()
+	startup()
+	port_check()		
