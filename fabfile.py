@@ -4,6 +4,8 @@ from fabric.contrib import files
 import os,urllib2
 import re
 import pdb
+from datetime import datetime
+
 env.user='root'
 env.password='yanlihua1982'
 #env.exclude_hosts=['192.168.8.90']
@@ -16,6 +18,10 @@ env.hosts=['192.168.8.108','192.168.8.90']
 UP_DIR='/tmp'
 filenames=['nginx-1.10.2.tar.gz']
 pro='demo1'
+def str_time():
+	now=datetime.now()
+	now=now.strftime('%Y-%m-%d-%H%-%M-%s')
+	return now
 #@task(name='up')
 def upload():
 	for filename in filenames:
@@ -70,7 +76,7 @@ def startup():
 				print 'nginx start failed ... aborting'
 				abort('you need to check nginx.conf')				
 			#print result.lower(),result.return_code,result.succeeded,result.failed
-
+@task
 def conf():
 	tmp="""
 	server {
@@ -102,6 +108,11 @@ def conf():
 }
 """
 	with settings(warn_only=True):
+		conf=run('test -f /usr/local/nginx/conf/nginx.conf')
+		if conf.return_code==0:
+			time1=str_time()
+			run('mv /usr/local/nginx/conf/nginx.conf /usr/local/nginx/conf/nginx.conf.bak_%s'%time1)
+		put('nginx.conf','/usr/local/nginx/conf')
 		rel=run('test -d /usr/local/nginx/conf/vhost')
 		if rel.return_code==1:
 			run('mkdir /usr/local/nginx/conf/vhost')		
