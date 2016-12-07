@@ -4,7 +4,7 @@ from fabric.contrib.console import confirm
 env.hosts=['192.168.8.87']
 #env.user='root'
 #env.password='yanlihua1982'
-env.key_filename='../.ssh/id_rsa'
+env.key_filename='.ssh/id_rsa'
 
 def shangchuan():
 	put('../git-2.10.2.tar.gz','/root')	

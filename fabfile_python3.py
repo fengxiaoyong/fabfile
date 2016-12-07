@@ -1,8 +1,9 @@
+#! -*- coding=utf8 -*-
 from fabric.api import *
-
-
+import time
+from fabfile_git import addenv
 env.hosts=['192.168.8.87','192.168.9.79']
-#env.exclude_hosts=['192.168.9.79']
+env.exclude_hosts=['192.168.9.79']
 filenames=['Python-3.5.2.tgz']
 UP_DIR='/tmp'
 env.key_filename='~/.ssh/id_rsa'
@@ -30,13 +31,12 @@ def install():
 				run('make install')
 				with cd('..'):
 					run('rm -rf %s' %dir_1)
-@task
+
 def env_create():
-	run('yes|cp /etc/profile /etc/profile.bak')
-	run('echo "export PATH=/usr/local/python35/bin:$PATH" >>/etc/profile')
-	run('source /etc/profile')
-@task
-@parallel
+	#run('yes|cp /etc/profile /etc/profile.bak')
+	run('echo "export PATH=/usr/local/python35/bin:$PATH">>/etc/profile')
+	run("source /etc/profile")
+#@parallel
 def deploy():
 	before_intall()
 	up_load()
